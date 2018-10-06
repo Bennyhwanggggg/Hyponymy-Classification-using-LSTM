@@ -1,6 +1,6 @@
 # You can change the paths/hyper-parameters in this file to experiment your implementation
 class config:
-	use_f1 = False
+	use_f1 = True
 	use_char_embedding = False
 	use_modified_LSTMCell = False
 
