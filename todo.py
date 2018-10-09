@@ -138,17 +138,19 @@ def new_LSTMCell(input, hidden, w_ih, w_hh, b_ih=None, b_hh=None):
         state = fusedBackend.LSTMFused.apply
         return state(igates, hgates, hidden[1]) if b_ih is None else state(igates, hgates, hidden[1], b_ih, b_hh)
 
+    ### don't modify below 3 lines of codes ====================================
     hx, cx = hidden
     gates = F.linear(input, w_ih, b_ih) + F.linear(hx, w_hh, b_hh)
-
     ingate, forgetgate, cellgate, outgate = gates.chunk(4, 1)
-
+    ### don't modify above 3 lines of codes ====================================
+    
     ingate = F.sigmoid(ingate)
     forgetgate = F.sigmoid(forgetgate)
     cellgate = F.tanh(cellgate)
     outgate = F.sigmoid(outgate)
 
-    cy = (forgetgate * cx) + (ingate * cellgate)
+    #cy = (forgetgate * cx) + (ingate * cellgate)			## before modification
+    cy = (forgetgate * cx) + ((1-forgetgate) * cellgate)	## after modification
     hy = outgate * F.tanh(cy)
 
     return hy, cy
