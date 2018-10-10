@@ -4,18 +4,62 @@ from config import config
 _config = config()
 
 
+def get_type(data):
+	O_TYPE = 'O'
+	return O_TYPE if data == O_TYPE else data[-3:]
 
 """
 check number of continue word in given list before first O_TYPE, list could be partial list
 """
-def continue_words(data):
+def type_finder(g_data, p_data):
 	O_TYPE = 'O'
-	word_len = 0
-	for w in data:
-		if w == O_TYPE:
-			return word_len
-		word_len += 1
-	return word_len
+	g_label = 0
+	p_label = 0
+	match = 0
+
+	if not g_data:
+		return g_label, p_label, match
+
+	g_word = g_data[0]
+	p_word = p_data[0]
+	## handle single char
+	if len(g_data) == 1:
+		g_label = 1 if g_word != O_TYPE else 0
+		p_label = 1 if p_word != O_TYPE else 0
+		match = 1 if (g_word != O_TYPE and g_word == p_word) else 0
+		return g_label, p_label, match
+	## mutliple chars
+	bucket_list = [0]
+	## golden list
+	g_data.append(O_TYPE)
+	prev_type = get_type(g_word)
+	for i in range(1, len(g_data)):
+		g_word = g_data[i]
+		w_type = get_type(g_word)
+		if w_type != prev_type:
+			if prev_type != O_TYPE:
+				g_label += 1
+			prev_type = w_type
+			bucket_list.append(i)
+
+	## prediction list
+	p_data.append(O_TYPE)
+	prev_type = get_type(p_word)
+	for i in range(1, len(p_data)):
+		p_word = p_data[i]
+		w_type = get_type(p_word)
+		if w_type != prev_type:
+			if prev_type != O_TYPE:
+				p_label += 1
+			prev_type = w_type
+
+	## match
+	for i in range(len(bucket_list) - 1):
+		beg = bucket_list[i]
+		end = bucket_list[i + 1]
+		if (g_data[beg:end] == p_data[beg:end]) and (O_TYPE not in g_data[beg:end]):
+			match += 1
+	return g_label, p_label, match
 
 
 
@@ -26,104 +70,27 @@ False negative: golden is not O_TYPE but predicted doesn't match
 '''
 def evaluate(golden_list, predict_list, debug_mode=False):
 
-	tp, fp, fn = 0, 0, 0
-	O_TYPE = 'O'
+	final_g_label = 0
+	final_p_label = 0
+	final_match = 0
 	combo_list = zip(golden_list, predict_list)
 
 	for current_golden_list, current_predict_list in combo_list:
 		assert len(current_golden_list) == len(current_predict_list), "Error:golden_list has different size to predict_list!"
-		for i in range(len(current_golden_list)):
 
-			## B-t, I-t
-			## B-t, O
-			len_g = continue_words(current_golden_list[i:])
-			len_p = continue_words(current_predict_list[i:])
+		g_label, p_label, match = type_finder(current_golden_list, current_predict_list)
+		final_g_label += g_label
+		final_p_label += p_label
+		final_match += match
 
-			if len_g == len_p == 0:
-				## O -> O
-				continue
-			elif len_p == 0:
-				## Bt -> O
-				fn += 1
-			elif len_g == 0:
-				## O -> Bt
-				fp += 1
-			else:
-				if len_g != len_p:
-					## Bt It -> Bt O
-					fp += 1
-				else:
-					if current_golden_list[i: i+len_g] != current_predict_list[i:i+len_p]:
-						## Bt It -> Bt Ih
-						fn += 1
-					else:
-						## Bt It -> Bt It
-						tp += 1
-
-			# ## tn case -> no need to consider this index when both O_TYPE
-			# if current_golden_list[i] == O_TYPE and current_predict_list[i] == O_TYPE: 
-			# 	continue
-			# ## edge case when list only has one value
-			# if len(current_golden_list) == 1: 
-			# 	# tp case
-			# 	if (current_golden_list[i] != O_TYPE) and (current_golden_list[i] == current_predict_list[i]):
-			# 		tp += 1
-			# 	# fn case
-			# 	elif (current_golden_list[i] != O_TYPE) and (current_predict_list[i] != current_golden_list[i]):
-			# 		fn += 1
-			# 	# fp case
-			# 	elif (current_golden_list[i] == O_TYPE) and (current_predict_list[i] != O_TYPE):
-			# 		fp += 1
-				
-			# elif i == 0: # case when at begining of the list
-			# 	# tp case
-			# 	if current_golden_list[i] != O_TYPE and current_golden_list[i] == current_predict_list[i] \
-			# 		and current_golden_list[i+1] == current_predict_list[i+1]:
-			# 		tp += 1
-			# 	# fp case
-			# 	elif (current_golden_list[i] == O_TYPE and current_predict_list[i] != O_TYPE) or \
-			# 		(current_golden_list[i] == current_predict_list[i] and current_golden_list[i+1] != current_predict_list[i+1]):
-			# 		fp += 1
-			# 	# fn case
-			# 	elif (current_golden_list[i] != O_TYPE and current_predict_list[i] != current_golden_list[i]):
-			# 		fn += 1
-
-			# elif i == len(current_golden_list)-1: # case when at end of the list
-			# 	# tp case
-			# 	if current_golden_list[i] != O_TYPE and current_golden_list[i] == current_predict_list[i] \
-			# 		and current_golden_list[i-1] == current_predict_list[i-1]:
-			# 		tp += 1
-			# 	# fp case
-			# 	elif (current_golden_list[i] == O_TYPE and current_predict_list[i] != O_TYPE) or \
-			# 		(current_golden_list[i] == current_predict_list[i] and current_golden_list[i-1] != current_predict_list[i-1]):
-			# 		fp += 1
-			# 	# fn case
-			# 	elif (current_golden_list[i] != O_TYPE and current_predict_list[i] != current_golden_list[i]):
-			# 		fn += 1
-			# else:
-			# 	# tp case
-			# 	if current_golden_list[i] != O_TYPE and current_golden_list[i] == current_predict_list[i] \
-			# 		and current_golden_list[i-1] == current_predict_list[i-1] \
-			# 		and current_golden_list[i+1] == current_predict_list[i+1]:
-			# 		tp += 1
-			# 	# fp case
-			# 	elif (current_golden_list[i] == O_TYPE and current_predict_list[i] != O_TYPE) or \
-			# 		(current_golden_list[i] == current_predict_list[i] and \
-			# 		(current_golden_list[i-1] != current_predict_list[i-1] or current_golden_list[i+1] != current_predict_list[i+1])):
-			# 		fp += 1
-			# 	# fn case
-			# 	elif (current_golden_list[i] != O_TYPE and current_predict_list[i] != current_golden_list[i]):
-			# 		fn += 1
-	# precision = tp/(tp + fp)
-	# recall = tp/(tp + fn)
-
-	precision = 1.0* tp/(tp+fp)
-	recall = 1.0* tp/(tp+ fn)
-
+	# precision = 1.0* tp/(tp+fp)
+	# recall = 1.0* tp/(tp+ fn)
+	precision = 1.0*final_match/final_p_label
+	recall = 1.0*final_match/final_g_label
 	f1 = (2*precision*recall)/(precision+recall)
 
 	if debug_mode:
-		print("tp: {}, fp: {}, fn: {}".format(tp, fp, fn))
+		print("final_g_label: {}, final_p_label: {}, final_match: {}".format(final_g_label, final_p_label, final_match))
 		print("precision: {:.3f}, recall: {:.3f}, f1: {:.3f}".format(precision, recall, f1))
 
 	return f1
@@ -143,7 +110,7 @@ def new_LSTMCell(input, hidden, w_ih, w_hh, b_ih=None, b_hh=None):
     gates = F.linear(input, w_ih, b_ih) + F.linear(hx, w_hh, b_hh)
     ingate, forgetgate, cellgate, outgate = gates.chunk(4, 1)
     ### don't modify above 3 lines of codes ====================================
-    
+
     ingate = F.sigmoid(ingate)
     forgetgate = F.sigmoid(forgetgate)
     cellgate = F.tanh(cellgate)
@@ -162,8 +129,16 @@ def get_char_sequence(model, batch_char_index_matrices, batch_word_len_lists):
 
 if __name__ == "__main__":
 	O_type = 'O'
-	# a=[[1,2,O_type, 3], [1,O_type,O_type, 3]]
-	# b=[[1,O_type,O_type,O_type],[1,O_type,3,4]]
-	a=[['B-TAR', 'I-TAR', 'O', 'B-HYP'], ['B-TAR', 'O', 'O', 'B-HYP']]
-	b = [['O', 'O', 'O', 'O'], ['B-TAR', 'O', 'O', 'O']]
+	BT = 'B-TAR'
+	IT = 'I-TAR'
+	BH = 'B-HYP'
+	IH = 'I-HYP'
+	# a=[[BT,IT,O_type, BH], [BT,O_type,O_type, BH]]
+	# b=[[BT,O_type,O_type,O_type],[BT,O_type,BH,IH]]
+
+	# a=[['B-TAR', 'I-TAR', 'O', 'B-HYP'], ['B-TAR', 'O', 'O', 'B-HYP']]
+	# b = [['O', 'O', 'O', 'O'], ['B-TAR', 'O', 'O', 'O']]
+
+	a = [[BT, IT, IT, IT, O_type, BH]]
+	b = [[BT, IT, BH, IH, O_type, BH]]
 	evaluate(a, b, True)
