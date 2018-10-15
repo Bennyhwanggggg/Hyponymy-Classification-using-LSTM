@@ -47,9 +47,12 @@ class sequence_labeling(nn.Module):
         # employ char embedding if the flag is True
         if self.config.use_char_embedding:
             output_char_sequence = get_char_sequence(self, batch_char_index_matrices, batch_word_len_lists)
+            #print(">>", output_char_sequence.shape)
             input_embeds = self.non_recurrent_dropout(torch.cat([input_word_embeds, output_char_sequence], dim=-1))
         else:
             input_embeds = self.non_recurrent_dropout(input_word_embeds)
+
+        #print('>>', batch_char_index_matrices.shape, batch_char_index_matrices)
 
         perm_idx, sorted_batch_sentence_len_list = self.sort_input(batch_sentence_len_list)
         sorted_input_embeds = input_embeds[perm_idx]

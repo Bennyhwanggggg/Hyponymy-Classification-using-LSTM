@@ -1,4 +1,5 @@
-#import torch
+import torch
+import torch.nn.functional as F
 from config import config
 
 _config = config()
@@ -85,14 +86,18 @@ def evaluate(golden_list, predict_list, debug_mode=False):
 
 	# precision = 1.0* tp/(tp+fp)
 	# recall = 1.0* tp/(tp+ fn)
-	precision = 1.0*final_match/final_p_label
-	recall = 1.0*final_match/final_g_label
-	f1 = (2*precision*recall)/(precision+recall)
+	try:
+		precision = 1.0*final_match/final_p_label
+		recall = 1.0*final_match/final_g_label
+		f1 = (2*precision*recall)/(precision+recall)
 
-	if debug_mode:
-		print("final_g_label: {}, final_p_label: {}, final_match: {}".format(final_g_label, final_p_label, final_match))
-		print("precision: {:.3f}, recall: {:.3f}, f1: {:.3f}".format(precision, recall, f1))
+		if debug_mode:
+			print("final_g_label: {}, final_p_label: {}, final_match: {}".format(final_g_label, final_p_label, final_match))
+			print("precision: {:.3f}, recall: {:.3f}, f1: {:.3f}".format(precision, recall, f1))
 
+	except:
+		f1 = 0
+	
 	return f1
 
 
@@ -124,8 +129,15 @@ def new_LSTMCell(input, hidden, w_ih, w_hh, b_ih=None, b_hh=None):
 
 
 def get_char_sequence(model, batch_char_index_matrices, batch_word_len_lists):
-  pass;
 
+	#batch_reverse_char_index_lists = batch_char_index_matrices
+	m =  model.char_embeds(batch_char_index_matrices)
+	m = torch.sum(m, dim=2)
+	result = torch.zeros(m.shape[0], m.shape[1], m.shape[2]*2)
+	result[:m.shape[0],:m.shape[1], :m.shape[2]] = m
+
+	#print(">>>>", m)
+	return result
 
 if __name__ == "__main__":
 	O_type = 'O'

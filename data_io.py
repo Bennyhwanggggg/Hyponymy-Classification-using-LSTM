@@ -27,7 +27,7 @@ def read_tag_vocab(file_name):
 def gen_dict_from_file(file_name):
 	embedding_keys = []
 	embedding_dict = {}
-	with open(file_name) as f:
+	with open(file_name, encoding="utf8") as f:
 		for line in f:
 			line = line.strip()
 			current_word = line.split()[0]
@@ -54,7 +54,7 @@ def gen_embedding_from_file(embedding_file, embeds_dim):
 # returns a list of sentences (sentence are formed as a list of words) and a list of tag sequences
 def read_sentences_and_tags(file_name):
 	sentence_list, tag_sequence_list = [], []
-	with open(file_name) as f:
+	with open(file_name, encoding="utf8") as f:
 		sentence, tag_sequence = [], []
 		for line in f:
 			line = line.strip()
