@@ -129,15 +129,54 @@ def new_LSTMCell(input, hidden, w_ih, w_hh, b_ih=None, b_hh=None):
 
 
 def get_char_sequence(model, batch_char_index_matrices, batch_word_len_lists):
+	m_shape = batch_char_index_matrices.shape
+	m = batch_char_index_matrices.clone()
+	for i in range(len(batch_word_len_lists)):
+		# print('****')
+		for j in range(len(batch_word_len_lists[i])):
+			# print('--')
+			# print(batch_word_len_lists[i][j])
+			length = batch_word_len_lists[i][j]
+			for k in range(length-1, -1, -1):
+				character = batch_char_index_matrices[i][j][k]
+				# result = torch.zeros(batch_char_index_matrices.shape[0], batch_char_index_matrices.shape[1], m.shape[0])
+				m[i][j][length-1-k] = character
 
+
+	
+	# m =  model.char_embeds(batch_char_index_matrices)
 	#batch_reverse_char_index_lists = batch_char_index_matrices
-	m =  model.char_embeds(batch_char_index_matrices)
-	m = torch.sum(m, dim=2)
-	result = torch.zeros(m.shape[0], m.shape[1], m.shape[2]*2)
-	result[:m.shape[0],:m.shape[1], :m.shape[2]] = m
+	forward =  model.char_embeds(batch_char_index_matrices)[:,:,-1,:]
+	backward = model.char_embeds(m)[:,:,-1,:]
+	output_char_seq = torch.cat([forward, backward], dim=-1)
 
-	#print(">>>>", m)
-	return result
+
+	# if m_shape[0] == 10 and m_shape[1] == 9 and m_shape[2] == 11:
+	# 	# print(">>>>", output_char_seq.shape)
+	# 	# print("!!!!", packed.shape)
+	# 	#print("<<<<", batch_word_len_lists.shape, batch_word_len_lists)
+	# 	#print(char_embeds)
+	# 	print(batch_char_index_matrices)
+	# 	print(">>>>>>==============")
+
+	# 	print(m)
+	# 	sys.exit()
+	
+
+
+
+	return output_char_seq
+
+def flip(x, dim):
+	print('x.dim ==>', x.dim())
+	print('x.shape ==>', x.shape)
+	indices = [slice(None)] * x.dim()
+	print('indices ==>',indices)
+	indices[dim] = torch.arange(x.size(dim) - 1, -1, -1, dtype=torch.long, device=x.device)
+	#indices = indices[dim][-3:] + indices[dim][3:]
+	print('indices after ==>',indices)
+	return x[tuple(indices)]
+
 
 if __name__ == "__main__":
 	O_type = 'O'
