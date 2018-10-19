@@ -1,6 +1,7 @@
 import torch
 import torch.nn.functional as F
 from config import config
+import numpy as np
 
 _config = config()
 
@@ -98,7 +99,7 @@ def evaluate(golden_list, predict_list, debug_mode=False):
 	except:
 		f1 = 0
 	
-	return f1
+	return round(f1,3)
 
 
 
@@ -129,42 +130,42 @@ def new_LSTMCell(input, hidden, w_ih, w_hh, b_ih=None, b_hh=None):
 
 
 def get_char_sequence(model, batch_char_index_matrices, batch_word_len_lists):
-	m_shape = batch_char_index_matrices.shape
 	m = batch_char_index_matrices.clone()
 	for i in range(len(batch_word_len_lists)):
-		# print('****')
 		for j in range(len(batch_word_len_lists[i])):
-			# print('--')
-			# print(batch_word_len_lists[i][j])
 			length = batch_word_len_lists[i][j]
 			for k in range(length-1, -1, -1):
 				character = batch_char_index_matrices[i][j][k]
-				# result = torch.zeros(batch_char_index_matrices.shape[0], batch_char_index_matrices.shape[1], m.shape[0])
 				m[i][j][length-1-k] = character
 
+	forward =  model.char_embeds(batch_char_index_matrices)
+	backward = model.char_embeds(m)
 
+
+
+	#output_sequence, state = model.char_lstm(forward.view(-1))
 	
-	# m =  model.char_embeds(batch_char_index_matrices)
-	#batch_reverse_char_index_lists = batch_char_index_matrices
-	forward =  model.char_embeds(batch_char_index_matrices)[:,:,-1,:]
-	backward = model.char_embeds(m)[:,:,-1,:]
-	output_char_seq = torch.cat([forward, backward], dim=-1)
+		#reverse_output, reverse_hidden = model.char_lstm(backward[i])
+	state = None
+	output_char_seq = None
+	#bi_output, bi_hidden = model.char_lstm(forward[0])
+	for ix, words in enumerate(batch_char_index_matrices):
+		char_embeds = model.char_embeds(words)
+		lstm_char_out, state = model.char_lstm(
+            char_embeds, state)
+		
+		#forward =  model.char_embeds(word)
+		if output_char_seq is None:
+			output_char_seq = lstm_char_out[:,-1,:].unsqueeze(0)
+		else:
+			#print("="*20, output_char_seq.shape)
+			#print(">"*20, lstm_char_out[:,-1,:].shape)
+			output_char_seq = torch.cat([output_char_seq, lstm_char_out[:,-1,:].unsqueeze(0)], dim=0)
 
-
-	# if m_shape[0] == 10 and m_shape[1] == 9 and m_shape[2] == 11:
-	# 	# print(">>>>", output_char_seq.shape)
-	# 	# print("!!!!", packed.shape)
-	# 	#print("<<<<", batch_word_len_lists.shape, batch_word_len_lists)
-	# 	#print(char_embeds)
-	# 	print(batch_char_index_matrices)
-	# 	print(">>>>>>==============")
-
-	# 	print(m)
-	# 	sys.exit()
+	#print("="*30, output_char_seq.shape)
 	
-
-
-
+	#output_char_seq = torch.cat([forward, backward], dim=-1)
+	#output_char_seq = lstm_char_out
 	return output_char_seq
 
 def flip(x, dim):
