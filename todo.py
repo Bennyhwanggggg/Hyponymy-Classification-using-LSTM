@@ -20,8 +20,7 @@ def type_finder(g_data, p_data):
 	match = 0
 
 	if not g_data:
-		return g_label, p_label, match
-
+		return g_label, p_label, match 
 	g_word = g_data[0]
 	p_word = p_data[0]
 	## handle single char
@@ -105,68 +104,60 @@ def evaluate(golden_list, predict_list, debug_mode=False):
 
 def new_LSTMCell(input, hidden, w_ih, w_hh, b_ih=None, b_hh=None):
 	## original code from torch.nn._functions.rnn.LSTMCell
-    if input.is_cuda:
-        igates = F.linear(input, w_ih)
-        hgates = F.linear(hidden[0], w_hh)
-        state = fusedBackend.LSTMFused.apply
-        return state(igates, hgates, hidden[1]) if b_ih is None else state(igates, hgates, hidden[1], b_ih, b_hh)
+	if input.is_cuda:
+		igates = F.linear(input, w_ih)
+		hgates = F.linear(hidden[0], w_hh)
+		state = fusedBackend.LSTMFused.apply
+		return state(igates, hgates, hidden[1]) if b_ih is None else state(igates, hgates, hidden[1], b_ih, b_hh)
 
-    ### don't modify below 3 lines of codes ====================================
-    hx, cx = hidden
-    gates = F.linear(input, w_ih, b_ih) + F.linear(hx, w_hh, b_hh)
-    ingate, forgetgate, cellgate, outgate = gates.chunk(4, 1)
-    ### don't modify above 3 lines of codes ====================================
+	### don't modify below 3 lines of codes ====================================
+	hx, cx = hidden
+	gates = F.linear(input, w_ih, b_ih) + F.linear(hx, w_hh, b_hh)
+	ingate, forgetgate, cellgate, outgate = gates.chunk(4, 1)
+	### don't modify above 3 lines of codes ====================================
 
-    ingate = F.sigmoid(ingate)
-    forgetgate = F.sigmoid(forgetgate)
-    cellgate = F.tanh(cellgate)
-    outgate = F.sigmoid(outgate)
+	ingate = F.sigmoid(ingate)
+	forgetgate = F.sigmoid(forgetgate)
+	cellgate = F.tanh(cellgate)
+	outgate = F.sigmoid(outgate)
 
-    #cy = (forgetgate * cx) + (ingate * cellgate)			## before modification
-    cy = (forgetgate * cx) + ((1-forgetgate) * cellgate)	## after modification
-    hy = outgate * F.tanh(cy)
+	#cy = (forgetgate * cx) + (ingate * cellgate)			## before modification
+	cy = (forgetgate * cx) + ((1-forgetgate) * cellgate)	## after modification
+	hy = outgate * F.tanh(cy)
 
-    return hy, cy
+	return hy, cy
 
 
 def get_char_sequence(model, batch_char_index_matrices, batch_word_len_lists):
-	m = batch_char_index_matrices.clone()
-	for i in range(len(batch_word_len_lists)):
-		for j in range(len(batch_word_len_lists[i])):
-			length = batch_word_len_lists[i][j]
-			for k in range(length-1, -1, -1):
-				character = batch_char_index_matrices[i][j][k]
-				m[i][j][length-1-k] = character
+	# Given an input of the size [2,7,14], we will convert it a minibatch of the shape [14,14] to 
+	# represent 14 words(7 in each sentence), and 14 characters in each word.
+	## NOTE: Please DO NOT USE for Loops to iterate over the mini-batch.
+	char_size = batch_char_index_matrices.size()
+	mini_batch = batch_char_index_matrices.view(char_size[0]*char_size[1], char_size[2])
 
-	forward =  model.char_embeds(batch_char_index_matrices)
-	backward = model.char_embeds(m)
+	# Get corresponding char_Embeddings, we will have a Final Tensor of the shape [14, 14, 50]
+	char_Embeddings = model.char_embeds(mini_batch)
 
+	# Sort the mini-batch wrt word-lengths, to form a pack_padded sequence.
+	# Feed the pack_padded sequence to the char_LSTM layer.
+	batch_word_lengths = batch_word_len_lists.view(-1)
+	perm_idx, sorted_batch_word_len_lists = model.sort_input(batch_word_lengths)
+	sorted_input_embeds = char_Embeddings[perm_idx]
 
+	# Get hidden state of the shape [2,14,50].
+	_, desorted_indices = torch.sort(perm_idx, descending=False)
+	outputs = pack_padded_sequence(sorted_input_embeds, lengths = sorted_batch_word_len_lists.data.tolist(), batch_first=True)
+	outputs, hidden_state = model.char_lstm(outputs)
 
-	#output_sequence, state = model.char_lstm(forward.view(-1))
-	
-		#reverse_output, reverse_hidden = model.char_lstm(backward[i])
-	state = None
-	output_char_seq = None
-	#bi_output, bi_hidden = model.char_lstm(forward[0])
-	for ix, words in enumerate(batch_char_index_matrices):
-		char_embeds = model.char_embeds(words)
-		lstm_char_out, state = model.char_lstm(
-            char_embeds, state)
-		
-		#forward =  model.char_embeds(word)
-		if output_char_seq is None:
-			output_char_seq = lstm_char_out[:,-1,:].unsqueeze(0)
-		else:
-			#print("="*20, output_char_seq.shape)
-			#print(">"*20, lstm_char_out[:,-1,:].shape)
-			output_char_seq = torch.cat([output_char_seq, lstm_char_out[:,-1,:].unsqueeze(0)], dim=0)
+	# Recover the hidden_states corresponding to the sorted index.
+	result = torch.cat([hidden_state[0][0], hidden_state[0][1]], dim=-1)
+	result = result[desorted_indices]
 
-	#print("="*30, output_char_seq.shape)
-	
-	#output_char_seq = torch.cat([forward, backward], dim=-1)
-	#output_char_seq = lstm_char_out
-	return output_char_seq
+	# Re-shape it to get a Tensor the shape [2,7,100].
+	r_size = result.size()
+	result = result.view(2, int(r_size[0]/2), r_size[-1])
+
+	return result
 
 def flip(x, dim):
 	print('x.dim ==>', x.dim())
