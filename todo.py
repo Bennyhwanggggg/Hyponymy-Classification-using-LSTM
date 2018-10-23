@@ -14,100 +14,151 @@ def get_type(data):
 """
 check number of continue word in given list before first O_TYPE, list could be partial list
 """
-def type_finder(g_data, p_data):
-	O_TYPE = 'O'
-	g_label = 0
-	p_label = 0
-	match = 0
+# def type_finder(g_data, p_data):
+# 	O_TYPE = 'O'
+# 	g_label = 0
+# 	p_label = 0
+# 	match = 0
 
-	if not g_data:
-		return g_label, p_label, match 
-	g_word = g_data[0]
-	p_word = p_data[0]
-	## handle single char
-	if len(g_data) == 1:
-		g_label = 1 if g_word != O_TYPE else 0
-		p_label = 1 if p_word != O_TYPE else 0
-		match = 1 if (g_word != O_TYPE and g_word == p_word) else 0
-		return g_label, p_label, match
-	## mutliple chars
-	bucket_list = [0]
-	## golden list
-	g_data.append(O_TYPE)
-	prev_type = get_type(g_word)
-	for i in range(1, len(g_data)):
-		g_word = g_data[i]
-		w_type = get_type(g_word)
-		if w_type != prev_type:
-			if prev_type != O_TYPE:
-				g_label += 1
-			prev_type = w_type
-			bucket_list.append(i)
+# 	if not g_data:
+# 		return g_label, p_label, match 
+# 	g_word = g_data[0]
+# 	p_word = p_data[0]
+# 	## handle single char
+# 	if len(g_data) == 1:
+# 		g_label = 1 if g_word != O_TYPE else 0
+# 		p_label = 1 if p_word != O_TYPE else 0
+# 		match = 1 if (g_word != O_TYPE and g_word == p_word) else 0
+# 		return g_label, p_label, match
+# 	## mutliple chars
+# 	bucket_list = [0]
+# 	## golden list
+# 	g_data.append(O_TYPE)
+# 	prev_type = get_type(g_word)
+# 	for i in range(1, len(g_data)):
+# 		g_word = g_data[i]
+# 		w_type = get_type(g_word)
+# 		if w_type != prev_type:
+# 			if prev_type != O_TYPE:
+# 				g_label += 1
+# 			prev_type = w_type
+# 			bucket_list.append(i)
 
-	## prediction list
-	p_data.append(O_TYPE)
-	prev_type = get_type(p_word)
-	for i in range(1, len(p_data)):
-		p_word = p_data[i]
-		w_type = get_type(p_word)
-		if w_type != prev_type:
-			if prev_type != O_TYPE:
-				p_label += 1
-			prev_type = w_type
+# 	## prediction list
+# 	p_data.append(O_TYPE)
+# 	prev_type = get_type(p_word)
+# 	for i in range(1, len(p_data)):
+# 		p_word = p_data[i]
+# 		w_type = get_type(p_word)
+# 		if w_type != prev_type:
+# 			if prev_type != O_TYPE:
+# 				p_label += 1
+# 			prev_type = w_type
 
-	## match
-	for i in range(len(bucket_list) - 1):
-		beg = bucket_list[i]
-		end = bucket_list[i + 1]
-		if (g_data[beg:end] == p_data[beg:end]) and (O_TYPE not in g_data[beg:end]):
-			match += 1
-	return g_label, p_label, match
+# 	## match
+# 	for i in range(len(bucket_list) - 1):
+# 		beg = bucket_list[i]
+# 		end = bucket_list[i + 1]
+# 		if (g_data[beg:end] == p_data[beg:end]) and (O_TYPE not in g_data[beg:end]):
+# 			match += 1
+# 	return g_label, p_label, match
 
 
 
-'''
-True positive: index match and bondary match on both golden and predicted
-False positive: golden index and predicted matches but boundary doesn't match or golden index is O_TYPE but predicted is not
-False negative: golden is not O_TYPE but predicted doesn't match
-'''
-def evaluate(golden_list, predict_list, debug_mode=False):
+# '''
+# True positive: index match and bondary match on both golden and predicted
+# False positive: golden index and predicted matches but boundary doesn't match or golden index is O_TYPE but predicted is not
+# False negative: golden is not O_TYPE but predicted doesn't match
+# '''
+# def evaluate(golden_list, predict_list, debug_mode=False):
 
-	final_g_label = 0
-	final_p_label = 0
-	final_match = 0
-	combo_list = zip(golden_list, predict_list)
+# 	final_g_label = 0
+# 	final_p_label = 0
+# 	final_match = 0
+# 	combo_list = zip(golden_list, predict_list)
 
-	## if both list are empty, return 1
+# 	## if both list are empty, return 1
+# 	if all(not g for g in golden_list) and all(not p for p in predict_list):
+# 		return 1
+
+# 	for current_golden_list, current_predict_list in combo_list:
+# 		#assert len(current_golden_list) == len(current_predict_list), "Error:golden_list has different size to predict_list!"
+
+# 		g_label, p_label, match = type_finder(current_golden_list, current_predict_list)
+# 		final_g_label += g_label
+# 		final_p_label += p_label
+# 		final_match += match
+
+# 	# precision = 1.0* tp/(tp+fp)
+# 	# recall = 1.0* tp/(tp+ fn)
+# 	try:
+# 		precision = 1.0*final_match/final_p_label
+# 		recall = 1.0*final_match/final_g_label
+# 		f1 = (2*precision*recall)/(precision+recall)
+
+# 		if debug_mode:
+# 			print("final_g_label: {}, final_p_label: {}, final_match: {}".format(final_g_label, final_p_label, final_match))
+# 			print("precision: {:.3f}, recall: {:.3f}, f1: {:.3f}".format(precision, recall, f1))
+
+# 	except:
+# 		f1 = 0
+# 		if debug_mode:
+# 			print("final_g_label: {}, final_p_label: {}, final_match: {}".format(final_g_label, final_p_label, final_match))
+	
+# 	return f1
+
+def evaluate(golden_list, predict_list):
+
 	if all(not g for g in golden_list) and all(not p for p in predict_list):
 		return 1
 
-	for current_golden_list, current_predict_list in combo_list:
-		#assert len(current_golden_list) == len(current_predict_list), "Error:golden_list has different size to predict_list!"
+	fp=0
+	fn=0
+	tp=0
+	Blist = ['B-TAR', 'B-HYP']
+	Ilist = ['I-TAR', 'I-HYP']
+	leng = len(golden_list)
 
-		g_label, p_label, match = type_finder(current_golden_list, current_predict_list)
-		final_g_label += g_label
-		final_p_label += p_label
-		final_match += match
+	for j in range(leng):
+		length=len(golden_list[j])
+		for i in range(length):
+			if predict_list[j][i] in Blist:
+				if golden_list[j][i] != predict_list[j][i]:
+					fp += 1
+			if golden_list[j][i] in Blist:
+				if golden_list[j][i] != predict_list[j][i]:
+					fn += 1
+				if golden_list[j][i] == predict_list[j][i]:
+					if i == length -1:
+						tp += 1
+					else:
+						for n in range(i+1, length):
+							if golden_list[j][n] not in Ilist:
+								if predict_list[j][n] not in Ilist:
+									tp+=1
+								else:
+									fn +=1
+									fp += 1
+								break
+							if predict_list[j][n] not in Ilist:
+								if golden_list[j][n] not in Ilist:
+									tp += 1
+								else:
+									fn += 1
+									fp += 1
+								break
+							if n==length-1:
+								if golden_list[j][n] == predict_list[j][n]:
+									tp += 1
+								else:
+									fn += 1
+									fp += 1
 
-	# precision = 1.0* tp/(tp+fp)
-	# recall = 1.0* tp/(tp+ fn)
 	try:
-		precision = 1.0*final_match/final_p_label
-		recall = 1.0*final_match/final_g_label
-		f1 = (2*precision*recall)/(precision+recall)
-
-		if debug_mode:
-			print("final_g_label: {}, final_p_label: {}, final_match: {}".format(final_g_label, final_p_label, final_match))
-			print("precision: {:.3f}, recall: {:.3f}, f1: {:.3f}".format(precision, recall, f1))
-
+		f1 = (2*tp)/(2*tp + fn + fp)
 	except:
 		f1 = 0
-		if debug_mode:
-			print("final_g_label: {}, final_p_label: {}, final_match: {}".format(final_g_label, final_p_label, final_match))
-	
 	return f1
-
-
 
 def new_LSTMCell(input, hidden, w_ih, w_hh, b_ih=None, b_hh=None):
 	## original code from torch.nn._functions.rnn.LSTMCell
@@ -193,4 +244,4 @@ if __name__ == "__main__":
 	# b = [[BT, IT, BH, IH, O_type, BH]]
 	a = [[]]
 	b= [[]]
-	evaluate(a, b, True)
+	evaluate(a, b)
