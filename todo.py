@@ -1,6 +1,7 @@
 import torch
 import torch.nn.functional as F
 from config import config
+from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 import numpy as np
 
 _config = config()
@@ -76,8 +77,12 @@ def evaluate(golden_list, predict_list, debug_mode=False):
 	final_match = 0
 	combo_list = zip(golden_list, predict_list)
 
+	## if both list are empty, return 1
+	if all(not g for g in golden_list) and all(not p for p in predict_list):
+		return 1
+
 	for current_golden_list, current_predict_list in combo_list:
-		assert len(current_golden_list) == len(current_predict_list), "Error:golden_list has different size to predict_list!"
+		#assert len(current_golden_list) == len(current_predict_list), "Error:golden_list has different size to predict_list!"
 
 		g_label, p_label, match = type_finder(current_golden_list, current_predict_list)
 		final_g_label += g_label
@@ -97,8 +102,10 @@ def evaluate(golden_list, predict_list, debug_mode=False):
 
 	except:
 		f1 = 0
+		if debug_mode:
+			print("final_g_label: {}, final_p_label: {}, final_match: {}".format(final_g_label, final_p_label, final_match))
 	
-	return round(f1,3)
+	return f1
 
 
 
@@ -155,7 +162,7 @@ def get_char_sequence(model, batch_char_index_matrices, batch_word_len_lists):
 
 	# Re-shape it to get a Tensor the shape [2,7,100].
 	r_size = result.size()
-	result = result.view(2, int(r_size[0]/2), r_size[-1])
+	result = result.view(char_size[0], int(r_size[0]/char_size[0]), r_size[-1])
 
 	return result
 
@@ -171,7 +178,7 @@ def flip(x, dim):
 
 
 if __name__ == "__main__":
-	O_type = 'O'
+	O = 'O'
 	BT = 'B-TAR'
 	IT = 'I-TAR'
 	BH = 'B-HYP'
@@ -182,6 +189,8 @@ if __name__ == "__main__":
 	# a=[['B-TAR', 'I-TAR', 'O', 'B-HYP'], ['B-TAR', 'O', 'O', 'B-HYP']]
 	# b = [['O', 'O', 'O', 'O'], ['B-TAR', 'O', 'O', 'O']]
 
-	a = [[BT, IT, IT, IT, O_type, BH]]
-	b = [[BT, IT, BH, IH, O_type, BH]]
+	# a = [[BT, IT, IT, IT, O_type, BH]]
+	# b = [[BT, IT, BH, IH, O_type, BH]]
+	a = [[]]
+	b= [[]]
 	evaluate(a, b, True)

@@ -2,7 +2,7 @@
 class config:
 	use_f1 = True
 	use_char_embedding = True
-	use_modified_LSTMCell = False
+	use_modified_LSTMCell = True
 
 	train_file = 'data/train.txt'
 	dev_file = 'data/dev.txt'
