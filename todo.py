@@ -7,106 +7,6 @@ import numpy as np
 _config = config()
 
 
-def get_type(data):
-	O_TYPE = 'O'
-	return O_TYPE if data == O_TYPE else data[-3:]
-
-"""
-check number of continue word in given list before first O_TYPE, list could be partial list
-"""
-# def type_finder(g_data, p_data):
-# 	O_TYPE = 'O'
-# 	g_label = 0
-# 	p_label = 0
-# 	match = 0
-
-# 	if not g_data:
-# 		return g_label, p_label, match 
-# 	g_word = g_data[0]
-# 	p_word = p_data[0]
-# 	## handle single char
-# 	if len(g_data) == 1:
-# 		g_label = 1 if g_word != O_TYPE else 0
-# 		p_label = 1 if p_word != O_TYPE else 0
-# 		match = 1 if (g_word != O_TYPE and g_word == p_word) else 0
-# 		return g_label, p_label, match
-# 	## mutliple chars
-# 	bucket_list = [0]
-# 	## golden list
-# 	g_data.append(O_TYPE)
-# 	prev_type = get_type(g_word)
-# 	for i in range(1, len(g_data)):
-# 		g_word = g_data[i]
-# 		w_type = get_type(g_word)
-# 		if w_type != prev_type:
-# 			if prev_type != O_TYPE:
-# 				g_label += 1
-# 			prev_type = w_type
-# 			bucket_list.append(i)
-
-# 	## prediction list
-# 	p_data.append(O_TYPE)
-# 	prev_type = get_type(p_word)
-# 	for i in range(1, len(p_data)):
-# 		p_word = p_data[i]
-# 		w_type = get_type(p_word)
-# 		if w_type != prev_type:
-# 			if prev_type != O_TYPE:
-# 				p_label += 1
-# 			prev_type = w_type
-
-# 	## match
-# 	for i in range(len(bucket_list) - 1):
-# 		beg = bucket_list[i]
-# 		end = bucket_list[i + 1]
-# 		if (g_data[beg:end] == p_data[beg:end]) and (O_TYPE not in g_data[beg:end]):
-# 			match += 1
-# 	return g_label, p_label, match
-
-
-
-# '''
-# True positive: index match and bondary match on both golden and predicted
-# False positive: golden index and predicted matches but boundary doesn't match or golden index is O_TYPE but predicted is not
-# False negative: golden is not O_TYPE but predicted doesn't match
-# '''
-# def evaluate(golden_list, predict_list, debug_mode=False):
-
-# 	final_g_label = 0
-# 	final_p_label = 0
-# 	final_match = 0
-# 	combo_list = zip(golden_list, predict_list)
-
-# 	## if both list are empty, return 1
-# 	if all(not g for g in golden_list) and all(not p for p in predict_list):
-# 		return 1
-
-# 	for current_golden_list, current_predict_list in combo_list:
-# 		#assert len(current_golden_list) == len(current_predict_list), "Error:golden_list has different size to predict_list!"
-
-# 		g_label, p_label, match = type_finder(current_golden_list, current_predict_list)
-# 		final_g_label += g_label
-# 		final_p_label += p_label
-# 		final_match += match
-
-# 	# precision = 1.0* tp/(tp+fp)
-# 	# recall = 1.0* tp/(tp+ fn)
-# 	try:
-# 		precision = 1.0*final_match/final_p_label
-# 		recall = 1.0*final_match/final_g_label
-# 		f1 = (2*precision*recall)/(precision+recall)
-
-# 		if debug_mode:
-# 			print("final_g_label: {}, final_p_label: {}, final_match: {}".format(final_g_label, final_p_label, final_match))
-# 			print("precision: {:.3f}, recall: {:.3f}, f1: {:.3f}".format(precision, recall, f1))
-
-# 	except:
-# 		f1 = 0
-# 		if debug_mode:
-# 			print("final_g_label: {}, final_p_label: {}, final_match: {}".format(final_g_label, final_p_label, final_match))
-	
-# 	return f1
-
 def evaluate(golden_list, predict_list):
 
 	if all(not g for g in golden_list) and all(not p for p in predict_list):
@@ -216,16 +116,6 @@ def get_char_sequence(model, batch_char_index_matrices, batch_word_len_lists):
 	result = result.view(char_size[0], int(r_size[0]/char_size[0]), r_size[-1])
 
 	return result
-
-def flip(x, dim):
-	print('x.dim ==>', x.dim())
-	print('x.shape ==>', x.shape)
-	indices = [slice(None)] * x.dim()
-	print('indices ==>',indices)
-	indices[dim] = torch.arange(x.size(dim) - 1, -1, -1, dtype=torch.long, device=x.device)
-	#indices = indices[dim][-3:] + indices[dim][3:]
-	print('indices after ==>',indices)
-	return x[tuple(indices)]
 
 
 if __name__ == "__main__":
