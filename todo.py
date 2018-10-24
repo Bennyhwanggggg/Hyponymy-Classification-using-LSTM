@@ -12,47 +12,40 @@ def evaluate(golden_list, predict_list):
 	if all(not g for g in golden_list) and all(not p for p in predict_list):
 		return 1
 
-	fp=0
-	fn=0
-	tp=0
-	Blist = ['B-TAR', 'B-HYP']
-	Ilist = ['I-TAR', 'I-HYP']
-	leng = len(golden_list)
+	fp, fn, tp = 0, 0, 0
+	Blist, Ilist = ['B-TAR', 'B-HYP'], ['I-TAR', 'I-HYP']
 
-	for j in range(leng):
-		length=len(golden_list[j])
-		for i in range(length):
-			if predict_list[j][i] in Blist:
-				if golden_list[j][i] != predict_list[j][i]:
-					fp += 1
+	for j in range(len(golden_list)):
+		for i in range(len(golden_list[j])):
+			if predict_list[j][i] in Blist and golden_list[j][i] != predict_list[j][i]:
+				fp += 1
 			if golden_list[j][i] in Blist:
 				if golden_list[j][i] != predict_list[j][i]:
 					fn += 1
-				if golden_list[j][i] == predict_list[j][i]:
-					if i == length -1:
-						tp += 1
+				else:
+					if i != len(golden_list[j]) -1:
+						for n in range(i+1, len(golden_list[j])):
+							if golden_list[j][n] not in Ilist and predict_list[j][n] not in Ilist:
+								tp+=1
+								break
+							elif golden_list[j][n] not in Ilist and predict_list[j][n] in Ilist:
+								fn +=1
+								fp += 1
+								break
+							elif predict_list[j][n] not in Ilist and golden_list[j][n] not in Ilist:
+								tp += 1
+								break
+							elif predict_list[j][n] not in Ilist and golden_list[j][n] in Ilist:
+								fn += 1
+								fp += 1
+								break
+							if n==len(golden_list[j])-1 and golden_list[j][n] == predict_list[j][n]:
+								tp += 1
+							elif n==len(golden_list[j])-1 and golden_list[j][n] != predict_list[j][n]:
+								fn += 1
+								fp += 1
 					else:
-						for n in range(i+1, length):
-							if golden_list[j][n] not in Ilist:
-								if predict_list[j][n] not in Ilist:
-									tp+=1
-								else:
-									fn +=1
-									fp += 1
-								break
-							if predict_list[j][n] not in Ilist:
-								if golden_list[j][n] not in Ilist:
-									tp += 1
-								else:
-									fn += 1
-									fp += 1
-								break
-							if n==length-1:
-								if golden_list[j][n] == predict_list[j][n]:
-									tp += 1
-								else:
-									fn += 1
-									fp += 1
+						tp += 1
 
 	try:
 		f1 = (2*tp)/(2*tp + fn + fp)
@@ -119,7 +112,7 @@ def get_char_sequence(model, batch_char_index_matrices, batch_word_len_lists):
 
 
 if __name__ == "__main__":
-	O = 'O'
+	O_type = 'O'
 	BT = 'B-TAR'
 	IT = 'I-TAR'
 	BH = 'B-HYP'
@@ -130,8 +123,8 @@ if __name__ == "__main__":
 	# a=[['B-TAR', 'I-TAR', 'O', 'B-HYP'], ['B-TAR', 'O', 'O', 'B-HYP']]
 	# b = [['O', 'O', 'O', 'O'], ['B-TAR', 'O', 'O', 'O']]
 
-	# a = [[BT, IT, IT, IT, O_type, BH]]
-	# b = [[BT, IT, BH, IH, O_type, BH]]
-	a = [[]]
-	b= [[]]
-	evaluate(a, b)
+	a = [[BT, IT, IT, IT, O_type, BH]]
+	b = [[BT, IT, BH, IH, O_type, BH]]
+	# a = [[]]
+	# b= [[]]
+	print(evaluate(a, b))
