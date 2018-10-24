@@ -28,22 +28,12 @@ def evaluate(golden_list, predict_list):
 							if golden_list[j][n] not in Ilist and predict_list[j][n] not in Ilist:
 								tp+=1
 								break
-							elif golden_list[j][n] not in Ilist and predict_list[j][n] in Ilist:
-								fn +=1
-								fp += 1
-								break
-							elif predict_list[j][n] not in Ilist and golden_list[j][n] not in Ilist:
-								tp += 1
-								break
-							elif predict_list[j][n] not in Ilist and golden_list[j][n] in Ilist:
+							elif golden_list[j][n] != predict_list[j][n]:
 								fn += 1
 								fp += 1
 								break
-							if n==len(golden_list[j])-1 and golden_list[j][n] == predict_list[j][n]:
+							elif n==len(golden_list[j])-1 and golden_list[j][n] == predict_list[j][n]:
 								tp += 1
-							elif n==len(golden_list[j])-1 and golden_list[j][n] != predict_list[j][n]:
-								fn += 1
-								fp += 1
 					else:
 						tp += 1
 
